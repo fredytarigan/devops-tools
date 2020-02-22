@@ -1,0 +1,47 @@
+image: arm32v8/docker:stable-dind
+
+before_script:
+  - export VERSION=$(cat VERSION)
+  - docker login -u $DOCKER_REGISTRY_USER -p $DOCKER_REGISTRY_PASSWORD $DOCKER_REGISTRY 
+
+
+stages:
+  - build 
+  - tag 
+  - push
+
+build-image:
+  stage: build
+  tags:
+    - arm64
+    - amsterdam
+  script:
+    - cd dockerfiles
+    - docker build -t corberos/devops-tools:arm32v6-${VERSION} -f arm.Dockerfile . 
+    - docker build -t corberos/devops-tools:arm64v8-${VERSION} -f arm64.Dockerfile . 
+    - docker build -t corberos/devops-tools:amd64-${VERSION} -f amd64.Dockerfile . 
+
+tag-image:
+  stage: tag
+  tags:
+    - arm64
+    - amsterdam
+  script:
+    - docker tag corberos/devops-tools:arm32v6-${VERSION} corberos/devops-tools:arm32v6-latest
+    - docker tag corberos/devops-tools:arm64v8-${VERSION} corberos/devops-tools:arm64v8-latest
+    - docker tag corberos/devops-tools:amd64-${VERSION} corberos/devops-tools:amd64-latest
+
+push-image:
+  stage: push
+  tags:
+    - arm64
+    - amsterdam
+  script:
+    - docker manifest create corberos/devops-tools:latest corberos/devops-tools:arm32v6-latest corberos/devops-tools:arm64v8-latest corberos/devops-tools:amd64-latest
+    - docker manifest create corberos/devops-tools:${VERSION} corberos/devops-tools:arm32v6-${VERSION} corberos/devops-tools:arm64v8-${VERSION} corberos/devops-tools:amd64-${VERSION}
+    - docker manifest annotate corberos/devops-tools:latest corberos/devops-tools:arm32v6-latest --os linux --arch arm
+    - docker manifest annotate corberos/devops-tools:${VERSION} corberos/devops-tools:arm32v6-${VERSION} --os linux --arch arm
+    - docker manifest annotate corberos/devops-tools:latest corberos/devops-tools:arm64v8-latest --os linux --arch arm64 --variant armv8
+    - docker manifest annotate corberos/devops-tools:${VERSION} corberos/devops-tools:arm64v8-${VERSION} --os linux --arch arm64 --variant armv8 
+    - docker manifest push corberos/devops-tools:${VERSION}
+    - docker manifest push corberos/devops-tools:latest

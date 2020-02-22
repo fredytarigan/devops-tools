@@ -1,2 +1,6 @@
 # devops-tools
-Docker images with collection of devops tools
+
+Docker image with collection of devops tools.
+
+Docker registry :
+
